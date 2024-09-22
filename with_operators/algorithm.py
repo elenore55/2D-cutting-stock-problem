@@ -2,7 +2,7 @@ import copy
 
 import numpy as np
 
-from chromosome import Chromosome
+from with_operators.chromosome import Chromosome
 from piece import Piece
 import random
 
