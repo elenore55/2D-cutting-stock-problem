@@ -9,36 +9,36 @@ from piece import Piece
 from with_operators.chromosome import Chromosome
 import random
 
-# SHEET_H = 200
-# SHEET_W = 200
-# PIECES, ROTATED_PIECES = DataReader.read('C:\\Users\\Milica\\Desktop\\Fakultet\\Master\\Rad\\2D-cutting-stock-problem\\data\\01.csv')
-SHEET_H = 8
-SHEET_W = 10
-PIECES = [
-    Piece(2, 7),
-    Piece(3, 4),
-    Piece(5, 3),
-    Piece(2, 2),
-    Piece(1, 6),
-    Piece(7, 3),
-    Piece(2, 4)
-]
-ROTATED_PIECES = [
-    Piece(7, 2),
-    Piece(4, 3),
-    Piece(3, 5),
-    Piece(2, 2),
-    Piece(6, 1),
-    Piece(3, 7),
-    Piece(4, 2)
-]
+SHEET_H = 200
+SHEET_W = 80
+PIECES, ROTATED_PIECES = DataReader.read('C:\\Users\\Milica\\Desktop\\Fakultet\\Master\\Rad\\2D-cutting-stock-problem\\data\\01.csv')
+# SHEET_H = 8
+# SHEET_W = 10
+# PIECES = [
+#     Piece(2, 7),
+#     Piece(3, 4),
+#     Piece(5, 3),
+#     Piece(2, 2),
+#     Piece(1, 6),
+#     Piece(7, 3),
+#     Piece(2, 4)
+# ]
+# ROTATED_PIECES = [
+#     Piece(7, 2),
+#     Piece(4, 3),
+#     Piece(3, 5),
+#     Piece(2, 2),
+#     Piece(6, 1),
+#     Piece(3, 7),
+#     Piece(4, 2)
+# ]
 OPERATORS = ['V', 'H']
 NUM_PIECES = len(PIECES)
-POPULATION_SIZE = 250
+POPULATION_SIZE = 350
 CHROMOSOME_LEN = 2 * NUM_PIECES - 1
 MAX_ITERS = 1000
-ELITISM = 3
-MUTATION_RATE = 0.3
+ELITISM = 10
+MUTATION_RATE = 0.4
 
 costs = {}
 
@@ -66,31 +66,40 @@ def main():
     for iter_num in range(MAX_ITERS):
         population_with_cost = []
         for chromosome in population:
-            cost, w, h = evaluate_cost2(chromosome)
-            population_with_cost.append(Chromosome(chromosome, cost, w, h))
+            cost = calc_cost(chromosome)
+            population_with_cost.append(Chromosome(chromosome, cost, 0, 0))
 
         population_with_cost.sort(key=lambda x: x.cost)
         best_results.append(population_with_cost[0])
         print(iter_num, population_with_cost[0])
-        next_generation = [ch.chromosome for ch in population_with_cost[:ELITISM]]
+        next_generation = [chromosome.chromosome for chromosome in population_with_cost[:ELITISM]]
 
         for i in range(ELITISM, len(population_with_cost), 2):
-            parent1, parent2 = select_parents(population_with_cost)
+            parent1, parent2 = select_parents_roulette(population_with_cost)
             child1, child2 = crossover(parent1, parent2)
             child1 = mutate(child1)
-            child1 = tabu_search(child1, 10, 100)
+            child1 = tabu_search(child1, 3, 100)
             child2 = mutate(child2)
-            child2 = tabu_search(child2, 10, 100)
+            child2 = tabu_search(child2, 3, 100)
             next_generation.append(child1)
             next_generation.append(child2)
         population = next_generation
+    return best_results[-1]
 
 
-def select_parents(population: list[Chromosome]):
+def select_parents_roulette(population: list[Chromosome]):
     n = len(population)
     probabilities_sum = n * (n + 1) / 2
     probabilities = [i / probabilities_sum for i in range(n + 1, 1, -1)]
-    return random.choices([ch.chromosome for ch in population], weights=probabilities, k=2)
+    return random.choices([chromosome.chromosome for chromosome in population], weights=probabilities, k=2)
+
+
+def select_parents_tournament(population: list[Chromosome], tournament_size=5):
+    tournament = random.sample(population, tournament_size)
+    parent1 = min(tournament, key=lambda chromosome: calc_cost(chromosome))
+    tournament = random.sample(population, tournament_size)
+    parent2 = min(tournament, key=lambda chromosome: calc_cost(chromosome))
+    return parent1, parent2
 
 
 def crossover(parent1: list, parent2: list):
@@ -163,35 +172,28 @@ def PMX_crossover(parent1, parent2):
 
 
 def mutate(chromosome: list) -> list:
-    cpy = copy.deepcopy(chromosome)
     result = chromosome
     if random.random() < MUTATION_RATE:
         i1, i2 = random.sample(range(CHROMOSOME_LEN), 2)
+        if i1 > i2:
+            i1, i2 = i2, i1
         p1 = chromosome[i1]
         p2 = chromosome[i2]
         if p1 not in OPERATORS and p2 in OPERATORS:
-            chromosome_copy = []
-            for c in chromosome:
-                chromosome_copy.append(c)
+            chromosome_copy = copy.deepcopy(chromosome)
             chromosome_copy[i1], chromosome_copy[i2] = p2, p1
             if is_valid(chromosome_copy):
                 result = chromosome_copy
-            else:
-                result = chromosome
         else:
             chromosome[i1], chromosome[i2] = p2, p1
             result = chromosome
-    if is_valid(result):
-        ret_val = result
-    else:
-        ret_val = cpy
-    for i, elem in enumerate(ret_val):
+    for i, elem in enumerate(result):
         if random.random() < 0.2:
             if elem not in OPERATORS:
-                ret_val[i] = -elem
+                result[i] = -elem
             else:
-                ret_val[i] = flip(elem)
-    return ret_val
+                result[i] = flip(elem)
+    return result
 
 
 def flip(operator):
@@ -205,55 +207,10 @@ def getStr(chromosome: list) -> str:
 
 
 def generate_initial_population() -> list[Chromosome]:
-    return [generate_chromosome2() for _ in range(POPULATION_SIZE)]
+    return [generate_chromosome() for _ in range(POPULATION_SIZE)]
 
 
 def generate_chromosome() -> list:
-    pieces = list(range(1, NUM_PIECES + 1))
-    operators = random.choices(OPERATORS, k=NUM_PIECES - 1)
-    pieces_count = 0
-    operators_count = 1
-    result = []
-    for i in range(CHROMOSOME_LEN):
-        if operators_count > pieces_count - 1:
-            rnd_index = random.randint(0, len(pieces) - 1)
-            piece = pieces.pop(rnd_index)
-            result.append(piece)
-            pieces_count += 1
-        elif pieces_count == NUM_PIECES:
-            op = random.choice(operators)
-            if op == 'H':
-                result.append(op)
-            else:
-                chromosome_copy = copy.deepcopy(result)
-                chromosome_copy.append(op)
-                if calculate_height(chromosome_copy) <= SHEET_H:
-                    result.append(op)
-                else:
-                    result.append('H')
-            operators_count += 1
-        else:
-            if random.random() < 0.5:
-                rnd_index = random.randint(0, len(pieces) - 1)
-                piece = pieces.pop(rnd_index)
-                result.append(piece)
-                pieces_count += 1
-            else:
-                op = random.choice(operators)
-                if op == 'H':
-                    result.append(op)
-                else:
-                    chromosome_copy = copy.deepcopy(result)
-                    chromosome_copy.append(op)
-                    if calculate_height(chromosome_copy) <= SHEET_H:
-                        result.append(op)
-                    else:
-                        result.append('H')
-                operators_count += 1
-    return result
-
-
-def generate_chromosome2() -> list:
     pieces = list(range(1, NUM_PIECES + 1))
     operators = random.choices(OPERATORS, k=NUM_PIECES - 1)
     pieces_count = 0
@@ -294,49 +251,22 @@ def calculate_width(chromosome: list) -> float:
 
 def calculate_bounding_box(chromosome) -> BoundingBox:
     stack = []
-    try:
-        for gene in chromosome:
-            if gene in OPERATORS:
-                piece1 = stack.pop()
-                piece2 = stack.pop()
-                if gene == 'H':
-                    box = BoundingBox(piece1, piece2, gene, piece1.width + piece2.width, max(piece1.height, piece2.height))
-                    stack.append(box)
-                else:
-                    box = BoundingBox(piece1, piece2, gene, max(piece1.width, piece2.width), piece1.height + piece2.height)
-                    stack.append(box)
+    for gene in chromosome:
+        if gene in OPERATORS:
+            piece1 = stack.pop()
+            piece2 = stack.pop()
+            if gene == 'H':
+                box = BoundingBox(piece1, piece2, gene, piece1.width + piece2.width, max(piece1.height, piece2.height))
+                stack.append(box)
             else:
-                if gene > 0:
-                    stack.append(PIECES[gene - 1])
-                else:
-                    stack.append(ROTATED_PIECES[-gene - 1])
-        return stack.pop()
-    except IndexError:
-        print('ex')
-        print(chromosome)
-        raise Exception
-
-
-def evaluate_cost(chromosome: list) -> float:
-    return calculate_width(chromosome)
-
-
-def evaluate_cost2(chromosome: list) -> (int, int, int):
-    key = getStr(chromosome)
-    if key in costs:
-        return costs[key]
-    box = calculate_bounding_box(chromosome)
-    if box.height > SHEET_H:
-        result = box.width * box.height, box.width, box.height
-    else:
-        result = box.width, box.width, box.height
-    costs[key] = result
-    return result
-
-
-def evaluate_cost3(chromosome: list) -> int:
-    # find coords for each piece
-    pass
+                box = BoundingBox(piece1, piece2, gene, max(piece1.width, piece2.width), piece1.height + piece2.height)
+                stack.append(box)
+        else:
+            if gene > 0:
+                stack.append(PIECES[gene - 1])
+            else:
+                stack.append(ROTATED_PIECES[-gene - 1])
+    return stack.pop()
 
 
 def set_box_coords(box):
@@ -356,9 +286,6 @@ def set_box_coords(box):
 
 
 def get_neighbors(solution):
-    # rotate piece
-    # flip operator
-    # swap pieces
     neighbors = []
     for i in range(CHROMOSOME_LEN):
         neighbor = solution[:]
@@ -369,10 +296,20 @@ def get_neighbors(solution):
         neighbors.append(neighbor)
     for i in range(CHROMOSOME_LEN):
         for j in range(i + 1, CHROMOSOME_LEN):
-            if solution[i] not in OPERATORS and solution[j] not in OPERATORS:
-                neighbor = solution[:]
-                neighbor[i], neighbor[j] = neighbor[j], neighbor[i]
+            p1 = solution[i]
+            p2 = solution[j]
+            neighbor = solution[:]
+            if p1 not in OPERATORS and p2 in OPERATORS:
+                chromosome_copy = copy.deepcopy(solution)
+                chromosome_copy[i], chromosome_copy[j] = p2, p1
+                neighbor[i], neighbor[j] = p2, p1
+                if is_valid(neighbor):
+                    neighbors.append(neighbor)
+            else:
+                neighbor[i], neighbor[j] = p2, p1
                 neighbors.append(neighbor)
+    if len(neighbors) > 80:
+        return random.sample(neighbors, 80)
     return neighbors
 
 
@@ -388,7 +325,7 @@ def tabu_search(initial_solution: list, max_iterations: int, tabu_list_size: int
 
         for neighbor in neighbors:
             if neighbor not in tabu_list:
-                neighbor_fitness = evaluate_cost2(neighbor)[0]
+                neighbor_fitness = calc_cost(neighbor)
                 if neighbor_fitness < best_neighbor_fitness:
                     best_neighbor = neighbor
                     best_neighbor_fitness = neighbor_fitness
@@ -401,7 +338,7 @@ def tabu_search(initial_solution: list, max_iterations: int, tabu_list_size: int
         if len(tabu_list) > tabu_list_size:
             tabu_list.pop(0)
 
-        if evaluate_cost2(best_neighbor)[0] < evaluate_cost2(best_solution)[0]:
+        if calc_cost(best_neighbor) < calc_cost(best_solution):
             best_solution = best_neighbor
 
     return best_solution
@@ -452,32 +389,69 @@ def sep_hor(root):
 
 
 def calc_cost(chromosome: list) -> float:
+    key = getStr(chromosome)
+    if key in costs:
+        return costs[key]
+
     bounding_box = calculate_bounding_box(chromosome)
     separated = sep_hor(bounding_box)
-    overall_width = sum([item.width for item in separated])
+    total_width = sum([item.width for item in separated])  # TODO
+    total_height = calculate_height(chromosome)
     num_sheets = len(separated)
     num_invalids = 0
     for item in separated:
         if item.width > SHEET_W:
             num_invalids += 1
+    unoccupied_area = calculate_unoccupied_area(bounding_box)
     invalids_percentage = (num_invalids / num_sheets) * 100
-    cost = num_sheets + invalids_percentage + 0.0
+    cost = num_sheets + invalids_percentage + unoccupied_area / (10 ** len(str(unoccupied_area))) + total_width / (
+            10 ** len(str(total_width)))
+    if total_height > SHEET_H:
+        cost += (total_height - SHEET_H) * 1000
+    costs[key] = cost
     return cost
 
 
+def calculate_unoccupied_area(bounding_box):
+    if isinstance(bounding_box, Piece):
+        return 0
+    result = 0
+    elem1 = bounding_box.elem1
+    elem2 = bounding_box.elem2
+    op = bounding_box.op
+    if op == 'H':
+        if elem1.height > elem2.height:
+            result = (elem1.height - elem2.height) * elem2.width
+        elif elem1.height < elem2.height:
+            result = (elem2.height - elem1.height) * elem1.width
+    else:
+        if elem1.width > elem2.width:
+            result = (elem1.width - elem2.width) * elem2.height
+        elif elem1.width < elem2.width:
+            result = (elem2.width - elem1.width) * elem1.height
+    result += calculate_unoccupied_area(elem1)
+    result += calculate_unoccupied_area(elem2)
+    return result
+
 
 if __name__ == '__main__':
-    # main()
-    # ch = [-13, -9, -12, 17, 'V', 3, 'V', 4, 'V', 'H', -11, 'H', -8, 15, 10, 'H', 6, -5, 'V', -2, -7, 'V', 'H', 'V', 'V', 14, 'V', 'H', 'H', 'H', -1, 16, 'H']
-    # print(is_valid(ch))
-    # calculate_bounding_box(ch)
-    ch = [-5, -3, 2, 'H', -7, -4, 'H', 'V', 'V', -6, 'H', 1, 'H']
+    best = main()
+    print(best.chromosome)
+    b = calculate_bounding_box(best.chromosome)
+    set_box_coords(b)
+    arr = []
+    get_pieces_list(b, arr)
+    plot(arr)
+
+    ch = [10, 5, 11, 'H', -12, 'V', 'V', -9, 6, -8, 'H', 'V', 7, 'H', 'H', -13, -16, 'H', -17, -15, -1, -4, 'V', -3, 'H', 'V', 14, 2, 'V',
+          'V', 'H', 'V', 'H']
     print(is_valid(ch))
-    print('-----')
     b = calculate_bounding_box(ch)
     res = sep_hor(b)
-    for elem in res:
-        print(elem.width)
+    print('UNOCCUPIED')
+    print(calculate_unoccupied_area(b))
+    for r in res:
+        print(r.width)
     print('-----')
     print(b.width)
     print(b.height)
@@ -485,6 +459,7 @@ if __name__ == '__main__':
     arr = []
     get_pieces_list(b, arr)
     plot(arr)
+
     # for piece in arr:
     #     print(f'({piece.x}, {piece.y}, {piece.width}, {piece.height})')
     #

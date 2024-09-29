@@ -1,36 +1,16 @@
-from rectpack import PackingMode, SORT_NONE, GuillotineBssfSas, GuillotineBssfLas, GuillotineBlsfSas
-from rectpack.maxrects import MaxRectsBssf, MaxRectsBl
+import random
+
 import matplotlib.pyplot as plt
+import rectpack
 from matplotlib.patches import Rectangle
+from rectpack import PackingMode, SORT_NONE, GuillotineBssfSas
 
 from data_reader import DataReader
-import random
-import rectpack
-
-from piece import Piece
 from without_operators.chromosome import Chromosome
 
 SHEET_W = 200
 SHEET_H = 80
 PIECES, ROTATED_PIECES = DataReader.read('C:\\Users\\Milica\\Desktop\\Fakultet\\Master\\Rad\\2D-cutting-stock-problem\\data\\01.csv')
-# PIECES = [
-#     Piece(2, 7),
-#     Piece(3, 4),
-#     Piece(5, 3),
-#     Piece(2, 2),
-#     Piece(1, 6),
-#     Piece(7, 3),
-#     Piece(2, 4)
-# ]
-# ROTATED_PIECES = [
-#     Piece(7, 2),
-#     Piece(4, 3),
-#     Piece(3, 5),
-#     Piece(2, 2),
-#     Piece(6, 1),
-#     Piece(3, 7),
-#     Piece(4, 2)
-# ]
 NUM_PIECES = len(PIECES)
 POPULATION_SIZE = 200
 CHROMOSOME_LEN = NUM_PIECES
@@ -84,6 +64,14 @@ def select_parents(population: list[Chromosome]):
     probabilities_sum = n * (n + 1) / 2
     probabilities = [i / probabilities_sum for i in range(n + 1, 1, -1)]
     return random.choices([ch.chromosome for ch in population], weights=probabilities, k=2)
+
+
+def select_parents_tournament(population: list[Chromosome], tournament_size=5):
+    tournament = random.sample(population, tournament_size)
+    parent1 = min(tournament, key=lambda chromosome: calculate_cost(chromosome))
+    tournament = random.sample(population, tournament_size)
+    parent2 = min(tournament, key=lambda chromosome: calculate_cost(chromosome))
+    return parent1, parent2
 
 
 def crossover(parent1: list, parent2: list) -> (list, list):
@@ -172,89 +160,8 @@ def tabu_search(initial_solution: list, max_iterations: int, tabu_list_size: int
     return best_solution
 
 
-# def evaluate_cost(chromosome: list) -> (int, int, int):
-#     key = getStr(chromosome)
-#     if key in costs:
-#         return costs[key]
-#     max_width = 0
-#     max_height = 0
-#     packer = rectpack.newPacker(mode=PackingMode.Offline, sort_algo=SORT_NONE, rotation=False, pack_algo=GuillotineBssfSas)
-#     for gene in chromosome:
-#         if gene > 0:
-#             piece = PIECES[gene - 1]
-#             packer.add_rect(piece.width, piece.height)
-#         else:
-#             piece = ROTATED_PIECES[-gene - 1]
-#             packer.add_rect(piece.width, piece.height)
-#     packer.add_bin(SHEET_W, float('inf'))
-#     packer.pack()
-#     packed_bin = packer[0]
-#     for rect in packed_bin:
-#         x = rect.x
-#         y = rect.y
-#         width = rect.width
-#         height = rect.height
-#         if y + height > max_height:
-#             max_height = y + height
-#         if x + width > max_width:
-#             max_width = x + width
-#     costs[key] = (max_height, max_width, max_height)
-#     return max_height, max_width, max_height
-
-
 def getStr(chromosome: list) -> str:
     return ' '.join(str(x) for x in chromosome)
-
-
-# def evaluate_cost2(chromosome: list) -> (int, int, int):
-#     key = getStr(chromosome)
-#     if key in costs:
-#         return costs[key][0]
-#     max_width = 0
-#     max_height = 0
-#     packer = rectpack.newPacker(mode=PackingMode.Offline, sort_algo=SORT_NONE, rotation=False, pack_algo=GuillotineBssfSas)
-#     for gene in chromosome:
-#         if gene > 0:
-#             piece = PIECES[gene - 1]
-#             packer.add_rect(piece.width, piece.height)
-#         else:
-#             piece = ROTATED_PIECES[-gene - 1]
-#             packer.add_rect(piece.width, piece.height)
-#     packer.add_bin(SHEET_W, float('inf'))
-#     packer.pack()
-#     packed_bin = packer[0]
-#     for rect in packed_bin:
-#         x = rect.x
-#         y = rect.y
-#         width = rect.width
-#         height = rect.height
-#         if y + height > max_height:
-#             max_height = y + height
-#         if x + width > max_width:
-#             max_width = x + width
-#     costs[key] = (max_height, max_width, max_height)
-#     return max_height
-
-
-def get_color():
-    return "#%06x" % random.randint(0, 0xFFFFFF)
-
-
-def pack2(order):
-    packer = rectpack.newPacker(mode=PackingMode.Online, sort_algo=SORT_NONE, rotation=False, pack_algo=GuillotineBssfSas)
-    packer.add_bin(SHEET_W, float('inf'))
-    for num in order:
-        if num > 0:
-            piece = PIECES[num - 1]
-        else:
-            piece = ROTATED_PIECES[-num - 1]
-        packer.add_rect(piece.width, piece.height)
-        abin: MaxRectsBssf = packer[0]
-        print(abin.used_area())
-        print(abin.width, abin.height)
-        for abin in packer:
-            for rect in abin:
-                print(rect.x, rect.y, rect.width, rect.height)
 
 
 def pack(order):
@@ -268,9 +175,9 @@ def pack(order):
     packer.add_bin(SHEET_W, float('inf'))
     packer.pack()
     result = []
-    for abin in packer:
-        for rect in abin:
-            result.append((rect.x, rect.y, rect.width, rect.height))
+    packed_bin = packer[0]
+    for rect in packed_bin:
+        result.append((rect.x, rect.y, rect.width, rect.height))
     return result
 
 
@@ -290,7 +197,7 @@ def plot(order):
     for abin in packer:
         k = 0
         for rect in abin:
-            color = get_color()
+            color = "#%06x" % random.randint(0, 0xFFFFFF)
             ax.add_patch(Rectangle((rect.x, rect.y), rect.width, rect.height, facecolor=color))
             k += 1
     plt.show()
@@ -331,18 +238,13 @@ def get_valid_horizontal_cuts(rectangles):
     return valid_y, unoccupied, max_h
 
 
-# is it feasible
-# number of sheets
-# unused area in each sheet
-# total height
-
 def calculate_cost(chromosome: list) -> float:
     key = getStr(chromosome)
     if key in costs:
         return costs[key]
 
     rectangles = pack(chromosome)
-    valid_cuts, unoccupied_area, total_height = get_valid_horizontal_cuts(rectangles)
+    valid_cuts, unoccupied_area, total_height = get_valid_horizontal_cuts(rectangles)  # TODO: total height
 
     num_sheets, num_invalids = calculate_num_sheets(valid_cuts)
     invalids_percentage = (num_invalids / num_sheets) * 100
@@ -384,7 +286,8 @@ def calculate_num_sheets(valid_cuts: list) -> (int, int):
 
 
 if __name__ == '__main__':
-    # best = main()
+    best = main()
+
     # print(best.chromosome)
     # plot(best.chromosome)
     chrom = [2, -11, 14, 9, -12, -10, 4, 8, 3, 1, -6, 16, 15, -7, 13, -5, 17]
