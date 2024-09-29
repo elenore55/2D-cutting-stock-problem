@@ -11,7 +11,7 @@ import random
 
 SHEET_H = 200
 SHEET_W = 80
-PIECES, ROTATED_PIECES = DataReader.read('C:\\Users\\Milica\\Desktop\\Fakultet\\Master\\Rad\\2D-cutting-stock-problem\\data\\01.csv')
+PIECES, ROTATED_PIECES = DataReader.read('../data/01.csv')
 # SHEET_H = 8
 # SHEET_W = 10
 # PIECES = [
@@ -365,7 +365,7 @@ def plot(pieces):
     fig, ax = plt.subplots()
     ax.plot([0, 10], [0, 10])
     for rect in pieces:
-        color = "#%06x" % random.randint(0, 0xFFFFFF)
+        color = '#%06x' % random.randint(0, 0xFFFFFF)
         ax.add_patch(Rectangle((rect.x, rect.y), rect.width, rect.height, facecolor=color))
     plt.show()
 

@@ -10,7 +10,7 @@ from without_operators.chromosome import Chromosome
 
 SHEET_W = 200
 SHEET_H = 80
-PIECES, ROTATED_PIECES = DataReader.read('C:\\Users\\Milica\\Desktop\\Fakultet\\Master\\Rad\\2D-cutting-stock-problem\\data\\01.csv')
+PIECES, ROTATED_PIECES = DataReader.read('../data/01.csv')
 NUM_PIECES = len(PIECES)
 POPULATION_SIZE = 200
 CHROMOSOME_LEN = NUM_PIECES
@@ -197,7 +197,7 @@ def plot(order):
     for abin in packer:
         k = 0
         for rect in abin:
-            color = "#%06x" % random.randint(0, 0xFFFFFF)
+            color = '#%06x' % random.randint(0, 0xFFFFFF)
             ax.add_patch(Rectangle((rect.x, rect.y), rect.width, rect.height, facecolor=color))
             k += 1
     plt.show()
@@ -288,8 +288,8 @@ def calculate_num_sheets(valid_cuts: list) -> (int, int):
 if __name__ == '__main__':
     best = main()
 
-    # print(best.chromosome)
-    # plot(best.chromosome)
+    print(best.chromosome)
+    plot(best.chromosome)
     chrom = [2, -11, 14, 9, -12, -10, 4, 8, 3, 1, -6, 16, 15, -7, 13, -5, 17]
     rects = pack(chrom)
     v = get_valid_horizontal_cuts(rects)
