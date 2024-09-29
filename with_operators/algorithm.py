@@ -66,7 +66,7 @@ def main():
     for iter_num in range(MAX_ITERS):
         population_with_cost = []
         for chromosome in population:
-            cost = calc_cost(chromosome)
+            cost = calculate_cost(chromosome)
             population_with_cost.append(Chromosome(chromosome, cost, 0, 0))
 
         population_with_cost.sort(key=lambda x: x.cost)
@@ -96,9 +96,9 @@ def select_parents_roulette(population: list[Chromosome]):
 
 def select_parents_tournament(population: list[Chromosome], tournament_size=5):
     tournament = random.sample(population, tournament_size)
-    parent1 = min(tournament, key=lambda chromosome: calc_cost(chromosome))
+    parent1 = min(tournament, key=lambda chromosome: calculate_cost(chromosome))
     tournament = random.sample(population, tournament_size)
-    parent2 = min(tournament, key=lambda chromosome: calc_cost(chromosome))
+    parent2 = min(tournament, key=lambda chromosome: calculate_cost(chromosome))
     return parent1, parent2
 
 
@@ -202,7 +202,7 @@ def flip(operator):
     return 'V'
 
 
-def getStr(chromosome: list) -> str:
+def get_str(chromosome: list) -> str:
     return ' '.join(str(x) for x in chromosome)
 
 
@@ -243,10 +243,6 @@ def maybe_rotate(gene):
 
 def calculate_height(chromosome: list) -> int:
     return calculate_bounding_box(chromosome).height
-
-
-def calculate_width(chromosome: list) -> float:
-    return calculate_bounding_box(chromosome).width
 
 
 def calculate_bounding_box(chromosome) -> BoundingBox:
@@ -325,7 +321,7 @@ def tabu_search(initial_solution: list, max_iterations: int, tabu_list_size: int
 
         for neighbor in neighbors:
             if neighbor not in tabu_list:
-                neighbor_fitness = calc_cost(neighbor)
+                neighbor_fitness = calculate_cost(neighbor)
                 if neighbor_fitness < best_neighbor_fitness:
                     best_neighbor = neighbor
                     best_neighbor_fitness = neighbor_fitness
@@ -338,7 +334,7 @@ def tabu_search(initial_solution: list, max_iterations: int, tabu_list_size: int
         if len(tabu_list) > tabu_list_size:
             tabu_list.pop(0)
 
-        if calc_cost(best_neighbor) < calc_cost(best_solution):
+        if calculate_cost(best_neighbor) < calculate_cost(best_solution):
             best_solution = best_neighbor
 
     return best_solution
@@ -374,7 +370,7 @@ def plot(pieces):
     plt.show()
 
 
-def sep_hor(root):
+def separate_horizontally(root):
     queue = [root]
     result = []
 
@@ -388,13 +384,13 @@ def sep_hor(root):
     return result
 
 
-def calc_cost(chromosome: list) -> float:
-    key = getStr(chromosome)
+def calculate_cost(chromosome: list) -> float:
+    key = get_str(chromosome)
     if key in costs:
         return costs[key]
 
     bounding_box = calculate_bounding_box(chromosome)
-    separated = sep_hor(bounding_box)
+    separated = separate_horizontally(bounding_box)
     total_width = sum([item.width for item in separated])  # TODO
     total_height = calculate_height(chromosome)
     num_sheets = len(separated)
@@ -447,7 +443,7 @@ if __name__ == '__main__':
           'V', 'H', 'V', 'H']
     print(is_valid(ch))
     b = calculate_bounding_box(ch)
-    res = sep_hor(b)
+    res = separate_horizontally(b)
     print('UNOCCUPIED')
     print(calculate_unoccupied_area(b))
     for r in res:

@@ -160,7 +160,7 @@ def tabu_search(initial_solution: list, max_iterations: int, tabu_list_size: int
     return best_solution
 
 
-def getStr(chromosome: list) -> str:
+def get_str(chromosome: list) -> str:
     return ' '.join(str(x) for x in chromosome)
 
 
@@ -239,7 +239,7 @@ def get_valid_horizontal_cuts(rectangles):
 
 
 def calculate_cost(chromosome: list) -> float:
-    key = getStr(chromosome)
+    key = get_str(chromosome)
     if key in costs:
         return costs[key]
 
