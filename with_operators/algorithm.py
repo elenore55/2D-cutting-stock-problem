@@ -4,14 +4,12 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.patches import Rectangle
 
-from data_reader import DataReader
-from piece import Piece
-from with_operators.chromosome import Chromosome
+from data_readers.json_data_reader import JsonDataReader
+from util.util import Util
+from util.types import Piece, Chromosome
 import random
 
-SHEET_H = 200
-SHEET_W = 80
-PIECES, ROTATED_PIECES = DataReader.read('../data/01.csv')
+SHEET_W, SHEET_H, PIECES, ROTATED_PIECES = JsonDataReader.read(f'../json/c/{sys.argv[1]}')
 # SHEET_H = 8
 # SHEET_W = 10
 # PIECES = [
@@ -60,6 +58,7 @@ class BoundingBox(object):
 
 
 def main():
+    print(Util.calculate_theoretical_minimum(SHEET_W, SHEET_H, PIECES))
     best_results = []
     population = generate_initial_population()
 
@@ -67,7 +66,7 @@ def main():
         population_with_cost = []
         for chromosome in population:
             cost = calculate_cost(chromosome)
-            population_with_cost.append(Chromosome(chromosome, cost, 0, 0))
+            population_with_cost.append(Chromosome(chromosome, cost))
 
         population_with_cost.sort(key=lambda x: x.cost)
         best_results.append(population_with_cost[0])
@@ -404,6 +403,9 @@ def calculate_cost(chromosome: list) -> float:
             10 ** len(str(total_width)))
     if total_height > SHEET_H:
         cost += (total_height - SHEET_H) * 1000
+
+    if len(costs) > 10000:
+        costs.clear()
     costs[key] = cost
     return cost
 

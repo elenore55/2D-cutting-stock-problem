@@ -1,6 +1,6 @@
 import csv
 
-from piece import Piece
+from util.types import Piece
 
 
 class DataReader(object):
