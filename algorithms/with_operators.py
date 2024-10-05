@@ -37,6 +37,7 @@ class GeneticAlgorithmWithOperators(object):
         self.PIECES = []
         self.ROTATED_PIECES = []
         self.costs = {}
+        self.theoretical_minimum = 0
 
     def do(self, sheet_width: int, sheet_height: int, pieces: list[Piece], rotated_pieces: list[Piece]):
         self.SHEET_WIDTH = sheet_width
@@ -46,7 +47,7 @@ class GeneticAlgorithmWithOperators(object):
         self.NUM_PIECES = len(pieces)
         self.CHROMOSOME_LEN = 2 * self.NUM_PIECES - 1
 
-        theoretical_minimum = Util.calculate_theoretical_minimum(sheet_width, sheet_height, pieces)
+        self.theoretical_minimum = Util.calculate_theoretical_minimum(sheet_width, sheet_height, pieces)
         best_results = []
 
         population = self._generate_initial_population()
@@ -66,7 +67,7 @@ class GeneticAlgorithmWithOperators(object):
                 repetition_count = 0
             best_results.append(best_chromosome)
 
-            if best_chromosome.cost - theoretical_minimum < 0.5 or repetition_count > 100:
+            if best_chromosome.cost < 0.5 or repetition_count > 100:
                 print('Termination criteria reached')
                 return best_results
 
@@ -155,7 +156,7 @@ class GeneticAlgorithmWithOperators(object):
 
         bounding_box = self._calculate_bounding_box(chromosome)
         separated = self._separate_horizontally(bounding_box)
-        total_width = sum([item.width for item in separated])  # TODO
+        total_width = sum([item.width for item in separated])
         total_height = bounding_box.height
         num_sheets = len(separated)
         num_invalids = 0
@@ -165,9 +166,9 @@ class GeneticAlgorithmWithOperators(object):
         unoccupied_area = self._calculate_unoccupied_area(bounding_box)
         invalids_percentage = (num_invalids / num_sheets) * 100
         cost = (num_sheets + invalids_percentage + unoccupied_area / (10 ** len(str(unoccupied_area))) +
-                total_width / (10 ** len(str(total_width))))
+                total_width / (10 ** len(str(total_width)))) - self.theoretical_minimum
         if total_height > self.SHEET_HEIGHT:
-            cost += (total_height - self.SHEET_HEIGHT) * 1000
+            cost += (total_height - self.SHEET_HEIGHT) * 100
 
         if len(self.costs) > 10000:
             self.costs.clear()

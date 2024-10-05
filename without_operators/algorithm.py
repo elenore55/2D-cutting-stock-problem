@@ -64,6 +64,9 @@ def algorithm() -> list:
             child2 = tabu_search(child2, 2, 100)
             next_generation.append(child1)
             next_generation.append(child2)
+            #
+            # next_generation.append(generate_chromosome())
+            # next_generation.append(generate_chromosome())
 
         population = next_generation
     return best_results
@@ -313,13 +316,13 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # main()
     print(sys.argv[1])
-    chrom0 = [-26, -16, -11, -4, -21, 33, -48, -12, -49, -25, -46, -44, 36, -45, 52, 18, 53, -32, -9, -20, -19, -10, -13, 39, -2, -29, -6,
-              -28, 17, 50, 22, -30, -27, -34, 24, -47, -14, 35, 51, 40, -8, -1, -5, -3, -7, 42, 41, 23, 38, 31, 43, 37, -15]
+    chrom0 = [47, -28, 45, 43, -18, -4, -25, 42, -12, -57, -16, -52, -5, -53, 29, -30, 35, 44, 23, 27, -26, -55, 49, -2, -21, -3, 48, -61,
+              -15, 33, 20, 34, -31, 41, -22, 62, -32, -8, -19, -37, -54, -13, -24, -14, -36, -10, -51, -38, -58, 46, 50, -59, -9, -60, -56,
+              -11, -1, -40, -6, -7, -17, -39]
     rects = pack(chrom0)
     v = get_valid_horizontal_cuts(rects)
     print(v)
     print(calculate_cost(chrom0))
     plot(chrom0)
-    # plot1()

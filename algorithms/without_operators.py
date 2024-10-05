@@ -36,6 +36,7 @@ class GeneticAlgorithmWithoutOperators(object):
         self.PIECES = []
         self.ROTATED_PIECES = []
         self.costs = {}
+        self.theoretical_minimum = 0
 
     def do(self, sheet_width: int, sheet_height: int, pieces: list[Piece], rotated_pieces: list[Piece]):
         self.SHEET_WIDTH = sheet_width
@@ -43,7 +44,7 @@ class GeneticAlgorithmWithoutOperators(object):
         self.PIECES = pieces
         self.ROTATED_PIECES = rotated_pieces
 
-        theoretical_minimum = Util.calculate_theoretical_minimum(sheet_width, sheet_height, pieces)
+        self.theoretical_minimum = Util.calculate_theoretical_minimum(sheet_width, sheet_height, pieces)
         best_results = []
 
         repetition_count = 0
@@ -67,7 +68,7 @@ class GeneticAlgorithmWithoutOperators(object):
                 repetition_count = 0
             best_results.append(best_chromosome)
 
-            if best_chromosome.cost - theoretical_minimum < 0.5 or repetition_count > 100:
+            if best_chromosome.cost < 0.5 or repetition_count > 100:
                 print('Stopping')
                 return best_results
 
@@ -102,16 +103,16 @@ class GeneticAlgorithmWithoutOperators(object):
         neighbors = []
         chosen_indices = set()
         for i in range(num_neighbors):
-            p1, p2 = random.sample(range(len(chromosome)), 2)
-            if p1 > p2:
-                p1, p2 = p2, p1
-            while (p1, p2) in chosen_indices:
-                p1, p2 = random.sample(range(len(chromosome)), 2)
-                if p1 > p2:
-                    p1, p2 = p2, p1
-            chosen_indices.add((p1, p2))
+            index1, index2 = random.sample(range(len(chromosome)), 2)
+            if index1 > index2:
+                index1, index2 = index2, index1
+            while (index1, index2) in chosen_indices:
+                index1, index2 = random.sample(range(len(chromosome)), 2)
+                if index1 > index2:
+                    index1, index2 = index2, index1
+            chosen_indices.add((index1, index2))
             neighbor = chromosome[:]
-            neighbor[p1], neighbor[p2] = neighbor[p2], neighbor[p1]
+            neighbor[index1], neighbor[index2] = neighbor[index2], neighbor[index1]
             neighbors.append(neighbor)
         return neighbors
 
@@ -121,11 +122,11 @@ class GeneticAlgorithmWithoutOperators(object):
             return self.costs[key]
 
         rectangles = self._pack(chromosome)
-        valid_cuts, unoccupied_area, total_height = self._get_valid_horizontal_cuts(rectangles)  # TODO: total height
+        valid_cuts, unoccupied_area, total_height = self._get_valid_horizontal_cuts(rectangles)
 
         num_sheets, num_invalids = self._calculate_num_sheets(valid_cuts)
         invalids_percentage = (num_invalids / num_sheets) * 100
-        cost = num_sheets + invalids_percentage + unoccupied_area / (10 ** len(str(unoccupied_area)))
+        cost = num_sheets + invalids_percentage + unoccupied_area / (10 ** len(str(unoccupied_area))) - self.theoretical_minimum
 
         if len(self.costs) > 10000:
             self.costs.clear()

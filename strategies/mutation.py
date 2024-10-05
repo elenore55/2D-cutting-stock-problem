@@ -21,27 +21,29 @@ class NoMutation(MutationStrategy):
 
 class MutationWithOperators(MutationStrategy):
 
-    def __init__(self, mutation_rate=0.5):
+    def __init__(self, mutation_rate=0.5, repetition=1):
         self.mutation_rate = mutation_rate
+        self.repetition = repetition
 
     def mutate(self, chromosome: list, **kwargs) -> list:
         validation_fn = kwargs.get('validation_fn')
 
         result = chromosome
-        if random.random() < self.mutation_rate:
-            i1, i2 = random.sample(range(len(chromosome)), 2)
-            if i1 > i2:
-                i1, i2 = i2, i1
-            p1 = chromosome[i1]
-            p2 = chromosome[i2]
-            if p1 not in self.OPERATORS and p2 in self.OPERATORS:
-                chromosome_copy = copy.deepcopy(chromosome)
-                chromosome_copy[i1], chromosome_copy[i2] = p2, p1
-                if validation_fn(chromosome_copy):
-                    result = chromosome_copy
-            else:
-                chromosome[i1], chromosome[i2] = p2, p1
-                result = chromosome
+        for _ in range(self.repetition):
+            if random.random() < self.mutation_rate:
+                i1, i2 = random.sample(range(len(chromosome)), 2)
+                if i1 > i2:
+                    i1, i2 = i2, i1
+                p1 = chromosome[i1]
+                p2 = chromosome[i2]
+                if p1 not in self.OPERATORS and p2 in self.OPERATORS:
+                    chromosome_copy = copy.deepcopy(chromosome)
+                    chromosome_copy[i1], chromosome_copy[i2] = p2, p1
+                    if validation_fn(chromosome_copy):
+                        result = chromosome_copy
+                else:
+                    chromosome[i1], chromosome[i2] = p2, p1
+                    result = chromosome
         for i, elem in enumerate(result):
             if random.random() < 1 / len(chromosome):
                 if elem not in self.OPERATORS:
@@ -51,15 +53,34 @@ class MutationWithOperators(MutationStrategy):
         return result
 
 
-class MutationWithoutOperators(MutationStrategy):
+class TwoPointSwapWithoutOperators(MutationStrategy):
 
-    def __init__(self, mutation_rate=0.5):
+    def __init__(self, mutation_rate=0.5, repetition=1):
         self.mutation_rate = mutation_rate
+        self.repetition = repetition
 
     def mutate(self, chromosome: list, **kwargs) -> list:
-        if random.random() < self.mutation_rate:
-            i1, i2 = random.sample(range(len(chromosome)), 2)
-            chromosome[i1], chromosome[i2] = chromosome[i2], chromosome[i1]
+        for _ in range(self.repetition):
+            if random.random() < self.mutation_rate:
+                i1, i2 = random.sample(range(len(chromosome)), 2)
+                chromosome[i1], chromosome[i2] = chromosome[i2], chromosome[i1]
+        for i in range(len(chromosome)):
+            if random.random() < (1 / len(chromosome)):
+                chromosome[i] = -chromosome[i]
+        return chromosome
+
+
+class ThreePointSwapWithoutOperators(MutationStrategy):
+    def __init__(self, mutation_rate=0.5, repetition=1):
+        self.mutation_rate = mutation_rate
+        self.repetition = repetition
+
+    def mutate(self, chromosome: list, **kwargs) -> list:
+        for _ in range(self.repetition):
+            if random.random() < self.mutation_rate:
+                i1, i2, i3 = random.sample(range(len(chromosome)), 3)
+                chromosome[i1], chromosome[i2] = chromosome[i2], chromosome[i1]
+                chromosome[i1], chromosome[i3] = chromosome[i3], chromosome[i1]
         for i in range(len(chromosome)):
             if random.random() < (1 / len(chromosome)):
                 chromosome[i] = -chromosome[i]
