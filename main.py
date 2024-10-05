@@ -1,10 +1,11 @@
 import sys
 from strategies.selection import RouletteSelection, TournamentSelection
-from strategies.crossover import NoCrossover, PartiallyMappedCrossover, SpecialCrossover
-from strategies.mutation import NoMutation, MutationWithOperators, TwoPointSwapWithoutOperators, TabuSearch
+from strategies.crossover import NoCrossover, PartiallyMappedCrossover, SpecialCrossover, OrderCrossover, CycleCrossover
+from strategies.mutation import NoMutation, MutationWithOperators, TwoPointSwapWithoutOperators, TabuSearch, ThreePointSwapWithoutOperators
 from algorithms.with_operators import GeneticAlgorithmWithOperators
 from algorithms.without_operators import GeneticAlgorithmWithoutOperators
-from data_readers.json_data_reader import JsonDataReader
+from data_io.json_data_reader import JsonDataReader
+from data_io.data_writer import JsonDataWriter
 
 
 def start_with_operators():
@@ -17,29 +18,36 @@ def start_with_operators():
     TABU_SEARCH_MAX_ITERS = 3
     TABU_LIST_SIZE = 100
 
-    roulette_selection = RouletteSelection()
-    tournament_selection = TournamentSelection(tournament_size=TOURNAMENT_SIZE)
+    selection = get_selection(TOURNAMENT_SIZE)
+    crossover = get_crossover()
+    mutation = get_mutation(MUTATION_RATE, TABU_SEARCH_MAX_ITERS, TABU_LIST_SIZE)
 
-    no_crossover = NoCrossover()
-    pmx = PartiallyMappedCrossover()
-    special_crossover = SpecialCrossover()
+    for i in range(1, 31):
+        algorithm = GeneticAlgorithmWithOperators(
+            selection,
+            crossover,
+            mutation,
+            POPULATION_SIZE,
+            MAX_ITERATIONS,
+            ELITISM
+        )
+        sheet_width, sheet_height, pieces, rotated_pieces = JsonDataReader.read(f'./json/c/{i}.json')
 
-    no_mutation = NoMutation()
-    mutation_with_operators = MutationWithOperators(mutation_rate=MUTATION_RATE)
-    mutation_without_operators = TwoPointSwapWithoutOperators(mutation_rate=MUTATION_RATE)
-    tabu_search = TabuSearch(max_iters=TABU_SEARCH_MAX_ITERS, tabu_list_size=TABU_LIST_SIZE)
+        best_chromosome = algorithm.do(sheet_width, sheet_height, pieces, rotated_pieces)
 
-    algorithm = GeneticAlgorithmWithOperators(
-        roulette_selection,
-        pmx,
-        tabu_search,
-        300,
-        600,
-        10
-    )
-    sheet_width, sheet_height, pieces, rotated_pieces = JsonDataReader.read(f'./json/c/{sys.argv[1]}')
-    best_chromosome = algorithm.do(sheet_width, sheet_height, pieces, rotated_pieces)
-    algorithm.display_solution(best_chromosome)
+        tournament_size = TOURNAMENT_SIZE if isinstance(selection, TournamentSelection) else -1
+        write_data(
+            'with_operators.json',
+            selection,
+            crossover,
+            mutation,
+            best_chromosome,
+            POPULATION_SIZE,
+            ELITISM,
+            MUTATION_RATE,
+            tournament_size
+        )
+        # algorithm.display_solution(best_chromosome)
 
 
 def start_without_operators():
@@ -52,30 +60,100 @@ def start_without_operators():
     TABU_SEARCH_MAX_ITERS = 3
     TABU_LIST_SIZE = 100
 
-    roulette_selection = RouletteSelection()
-    tournament_selection = TournamentSelection(tournament_size=TOURNAMENT_SIZE)
+    selection = get_selection(TournamentSelection)
+    crossover = get_crossover()
+    mutation = get_mutation(MUTATION_RATE, TABU_SEARCH_MAX_ITERS, TABU_LIST_SIZE)
 
-    no_crossover = NoCrossover()
-    pmx = PartiallyMappedCrossover()
-    special_crossover = SpecialCrossover()
+    for i in range(1, 31):
+        algorithm = GeneticAlgorithmWithoutOperators(
+            selection,
+            crossover,
+            mutation,
+            POPULATION_SIZE,
+            MAX_ITERATIONS,
+            ELITISM
+        )
+        sheet_width, sheet_height, pieces, rotated_pieces = JsonDataReader.read(f'./json/c/{i}.json')
 
-    no_mutation = NoMutation()
-    mutation_with_operators = MutationWithOperators(mutation_rate=MUTATION_RATE)
-    mutation_without_operators = TwoPointSwapWithoutOperators(mutation_rate=MUTATION_RATE)
-    tabu_search = TabuSearch(max_iters=TABU_SEARCH_MAX_ITERS, tabu_list_size=TABU_LIST_SIZE)
+        best_chromosome = algorithm.do(sheet_width, sheet_height, pieces, rotated_pieces)
 
-    algorithm = GeneticAlgorithmWithoutOperators(
-        roulette_selection,
-        pmx,
-        tabu_search,
-        POPULATION_SIZE,
-        MAX_ITERATIONS,
-        ELITISM
-    )
-    sheet_width, sheet_height, pieces, rotated_pieces = JsonDataReader.read(f'./json/c/{sys.argv[1]}')
-    best_chromosome = algorithm.do(sheet_width, sheet_height, pieces, rotated_pieces)
-    algorithm.display_solution(best_chromosome)
+        tournament_size = TOURNAMENT_SIZE if isinstance(selection, TournamentSelection) else -1
+        write_data(
+            'without_operators.json',
+            selection,
+            crossover,
+            mutation,
+            best_chromosome,
+            POPULATION_SIZE,
+            ELITISM,
+            MUTATION_RATE,
+            tournament_size
+        )
+        # algorithm.display_solution(best_chromosome)
 
+
+def get_selection(tournament_size):
+    selection_name = sys.argv[1]
+    if selection_name == 'roulette':
+        return RouletteSelection()
+    return TournamentSelection(tournament_size=tournament_size)
+
+
+def get_crossover():
+    crossover_name = sys.argv[2]
+    if crossover_name == 'none':
+        return NoCrossover()
+    if crossover_name == 'pmx':
+        return PartiallyMappedCrossover()
+    if crossover_name == 'order':
+        return OrderCrossover()
+    if crossover_name == 'cycle':
+        return CycleCrossover()
+    return SpecialCrossover()
+
+
+def get_mutation(mutation_rate, tabu_max_iters, tabu_list_size):
+    mutation_name = sys.argv[3]
+    if mutation_name == 'with_ops':
+        return MutationWithOperators(mutation_rate=mutation_rate)
+    if mutation_name == '2ps':
+        return TwoPointSwapWithoutOperators(mutation_rate=mutation_rate)
+    if mutation_name == '3ps':
+        return ThreePointSwapWithoutOperators(mutation_rate=mutation_rate)
+    return TabuSearch(max_iters=tabu_max_iters, tabu_list_size=tabu_list_size)
+
+
+def write_data(
+        file_name,
+        selection,
+        crossover,
+        mutation,
+        best_chromosome,
+        population_size,
+        elitism,
+        mutation_rate,
+        tournament_size=-1
+):
+    unoccupied_percentage, num_sheets = math.modf(best_chromosome.cost)
+    data = {
+        'encoding': 'with_operators',
+        'selection': selection.__class__.__name__,
+        'crossover': crossover.__class__.__name__,
+        'mutation': mutation.__class__.__name__,
+        'best_chromosome': best_chromosome.chromosome,
+        'best_cost': best_chromosome.cost,
+        'num_sheets': int(num_sheets),
+        'unoccupied_percentage': unoccupied_percentage,
+        'population_size': population_size,
+        'elitism': elitism,
+        'mutation_rate': mutation_rate,
+        'tournament_size': tournament_size
+    }
+    data_writer = JsonDataWriter()
+    data_writer.write(data, file_name)
+
+
+# args: selection, crossover, mutation
 
 if __name__ == '__main__':
     start_without_operators()

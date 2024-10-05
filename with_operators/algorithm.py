@@ -4,7 +4,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.patches import Rectangle
 
-from data_readers.json_data_reader import JsonDataReader
+from data_io.json_data_reader import JsonDataReader
 from util.util import Util
 from util.types import Piece, Chromosome
 import random

@@ -36,6 +36,7 @@ class GeneticAlgorithmWithOperators(object):
         self.SHEET_HEIGHT = 0
         self.PIECES = []
         self.ROTATED_PIECES = []
+        self.PIECES_AREA = 0
         self.costs = {}
         self.theoretical_minimum = 0
 
@@ -46,6 +47,7 @@ class GeneticAlgorithmWithOperators(object):
         self.ROTATED_PIECES = rotated_pieces
         self.NUM_PIECES = len(pieces)
         self.CHROMOSOME_LEN = 2 * self.NUM_PIECES - 1
+        self.PIECES_AREA = sum([piece.width * piece.height for piece in pieces])
 
         self.theoretical_minimum = Util.calculate_theoretical_minimum(sheet_width, sheet_height, pieces)
         best_results = []
@@ -163,10 +165,9 @@ class GeneticAlgorithmWithOperators(object):
         for item in separated:
             if item.width > self.SHEET_WIDTH:
                 num_invalids += 1
-        unoccupied_area = self._calculate_unoccupied_area(bounding_box)
+        unoccupied_area_percentage = 1 - self.PIECES_AREA / (bounding_box.width * bounding_box.height)
         invalids_percentage = (num_invalids / num_sheets) * 100
-        cost = (num_sheets + invalids_percentage + unoccupied_area / (10 ** len(str(unoccupied_area))) +
-                total_width / (10 ** len(str(total_width)))) - self.theoretical_minimum
+        cost = (num_sheets + invalids_percentage + unoccupied_area_percentage + total_width / (10 ** len(str(total_width)))) - self.theoretical_minimum
         if total_height > self.SHEET_HEIGHT:
             cost += (total_height - self.SHEET_HEIGHT) * 100
 

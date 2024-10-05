@@ -7,7 +7,7 @@ import rectpack
 from matplotlib.patches import Rectangle
 from rectpack import PackingMode, SORT_NONE, GuillotineBssfSas
 
-from data_readers.json_data_reader import JsonDataReader
+from data_io.json_data_reader import JsonDataReader
 from util.util import Util
 from util.types import Chromosome
 

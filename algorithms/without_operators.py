@@ -35,6 +35,7 @@ class GeneticAlgorithmWithoutOperators(object):
         self.SHEET_HEIGHT = 0
         self.PIECES = []
         self.ROTATED_PIECES = []
+        self.PIECES_AREA = 0
         self.costs = {}
         self.theoretical_minimum = 0
 
@@ -43,6 +44,7 @@ class GeneticAlgorithmWithoutOperators(object):
         self.SHEET_HEIGHT = sheet_height
         self.PIECES = pieces
         self.ROTATED_PIECES = rotated_pieces
+        self.PIECES_AREA = sum([piece.width * piece.height for piece in pieces])
 
         self.theoretical_minimum = Util.calculate_theoretical_minimum(sheet_width, sheet_height, pieces)
         best_results = []
@@ -122,11 +124,12 @@ class GeneticAlgorithmWithoutOperators(object):
             return self.costs[key]
 
         rectangles = self._pack(chromosome)
-        valid_cuts, unoccupied_area, total_height = self._get_valid_horizontal_cuts(rectangles)
+        valid_cuts, total_height = self._get_valid_horizontal_cuts(rectangles)
+        unoccupied_area_percentage = 1 - self.PIECES_AREA / (total_height * self.SHEET_WIDTH)
 
         num_sheets, num_invalids = self._calculate_num_sheets(valid_cuts)
         invalids_percentage = (num_invalids / num_sheets) * 100
-        cost = num_sheets + invalids_percentage + unoccupied_area / (10 ** len(str(unoccupied_area))) - self.theoretical_minimum
+        cost = num_sheets + invalids_percentage + unoccupied_area_percentage - self.theoretical_minimum
 
         if len(self.costs) > 10000:
             self.costs.clear()
@@ -171,14 +174,7 @@ class GeneticAlgorithmWithoutOperators(object):
             if valid:
                 valid_y.append(pairs[i][0])
         valid_y.append(max_h)
-
-        unoccupied = 0
-        for rect in rectangles:
-            _, y, w, h = rect
-            if y in levels_and_max_heights:
-                max_h_for_level = levels_and_max_heights[y]
-                unoccupied += w * (max_h_for_level - h)
-        return valid_y, unoccupied, max_h
+        return valid_y, max_h
 
     @staticmethod
     def _calculate_total_height(rectangles: list) -> list:
