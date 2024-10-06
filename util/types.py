@@ -1,5 +1,5 @@
 class Chromosome(object):
-    def __init__(self, chromosome: list, cost: int, w=0, h=0):
+    def __init__(self, chromosome: list, cost: float, w=0, h=0):
         self.chromosome = chromosome
         self.cost = cost
         self.w = w

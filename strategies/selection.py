@@ -16,9 +16,9 @@ class TournamentSelection(SelectionStrategy):
         self.tournament_size = tournament_size
 
     def select(self, population: list[Chromosome]) -> (list, list):
-        tournament = random.sample(population, self.tournament_size)
+        tournament = random.sample(population, k=self.tournament_size)
         parent1 = min(tournament, key=lambda chromosome: chromosome.cost)
-        tournament = random.sample(population, self.tournament_size)
+        tournament = random.sample(population, k=self.tournament_size)
         parent2 = min(tournament, key=lambda chromosome: chromosome.cost)
         return parent1.chromosome, parent2.chromosome
 

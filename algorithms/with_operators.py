@@ -71,7 +71,7 @@ class GeneticAlgorithmWithOperators(object):
 
             if best_chromosome.cost < 0.5 or repetition_count > 100:
                 print('Termination criteria reached')
-                return best_results
+                return best_results[-1], iter_num
 
             print(iter_num, best_chromosome)
             next_generation = [chromosome.chromosome for chromosome in population_with_cost[:self.elitism]]
@@ -94,9 +94,9 @@ class GeneticAlgorithmWithOperators(object):
                 next_generation.append(child1)
                 next_generation.append(child2)
             population = next_generation
-        return best_results[-1]
+        return best_results[-1], self.max_iterations
 
-    def _generate_initial_population(self) -> list[Chromosome]:
+    def _generate_initial_population(self) -> list[list]:
         return [self._generate_chromosome() for _ in range(self.population_size)]
 
     def _generate_chromosome(self) -> list:
@@ -167,7 +167,8 @@ class GeneticAlgorithmWithOperators(object):
                 num_invalids += 1
         unoccupied_area_percentage = 1 - self.PIECES_AREA / (bounding_box.width * bounding_box.height)
         invalids_percentage = (num_invalids / num_sheets) * 100
-        cost = (num_sheets + invalids_percentage + unoccupied_area_percentage + total_width / (10 ** len(str(total_width)))) - self.theoretical_minimum
+        cost = (num_sheets + invalids_percentage + unoccupied_area_percentage + total_width / (
+                    10 ** len(str(total_width)))) - self.theoretical_minimum
         if total_height > self.SHEET_HEIGHT:
             cost += (total_height - self.SHEET_HEIGHT) * 100
 

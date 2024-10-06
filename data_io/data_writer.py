@@ -1,9 +1,3 @@
-# results by iteration (chromosome, fitness)
-# which input file
-# which algorithm
-# which strategies and parameters
-# percentage of unused space
-
 import json
 import os
 from pathlib import Path
@@ -13,9 +7,9 @@ class JsonDataWriter(object):
 
     @staticmethod
     def write(data, file_name):
-        directory = Path('../output')
+        directory = Path('./output')
         directory.mkdir(parents=True, exist_ok=True)
-        path = f'../output/{file_name}'
+        path = f'./output/{file_name}'
         existing_arr = []
         if os.path.exists(path):
             with open(path, 'r') as file:

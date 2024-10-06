@@ -92,7 +92,7 @@ class OrderCrossover(CrossoverStrategy):
 
             if child1[i] == -1:
                 parent2_gene = parent2[current_parent2_position]
-                while parent2_gene in child1_inherited:
+                while parent2_gene in child1_inherited or -parent2_gene in child1_inherited:
                     current_parent2_position += 1
                     parent2_gene = parent2[current_parent2_position]
                 child1[i] = parent2_gene
@@ -100,7 +100,7 @@ class OrderCrossover(CrossoverStrategy):
 
             if child2[i] == -1:
                 parent1_gene = parent1[current_parent1_position]
-                while parent1_gene in child2_inherited:
+                while parent1_gene in child2_inherited or -parent1_gene in child2_inherited:
                     current_parent1_position += 1
                     parent1_gene = parent1[current_parent1_position]
                 child2[i] = parent1_gene
@@ -118,6 +118,8 @@ class CycleCrossover(CrossoverStrategy):
 
         parent1_copy = copy.deepcopy(parent1)
         parent2_copy = copy.deepcopy(parent2)
+        parent1_abs = [abs(gene) for gene in parent1]
+        parent2_abs = [abs(gene) for gene in parent2]
         swap = True
         count = 0
         position = 0
@@ -133,7 +135,7 @@ class CycleCrossover(CrossoverStrategy):
                 while True:
                     child1[position] = parent1[position]
                     count += 1
-                    position = parent2.index(parent1[position])
+                    position = parent2_abs.index(abs(parent1[position]))
                     if parent1_copy[position] == -1:
                         swap = False
                         break
@@ -142,7 +144,7 @@ class CycleCrossover(CrossoverStrategy):
                 while True:
                     child1[position] = parent2[position]
                     count += 1
-                    position = parent1.index(parent2[position])
+                    position = parent1_abs.index(abs(parent2[position]))
                     if parent2_copy[position] == -1:
                         swap = True
                         break
@@ -191,8 +193,8 @@ class SpecialCrossover(CrossoverStrategy):
 
 
 if __name__ == '__main__':
-    strategy = SpecialCrossover()
-    par1 = [8, 4, 7, 3, 6, 2, 5, 1, 9, 0]
-    par2 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    strategy = CycleCrossover()
+    par1 = [-8, 4, 7, -3, 6, 2, 5, 1, -9, 0, 11, 12, 15, 80]
+    par2 = [0, 1, 2, 3, -4, 5, -6, 7, 8, -9, -12, 15, -80, 11]
     c1, c2 = strategy.crossover(par1, par2)
     print(c1, c2)

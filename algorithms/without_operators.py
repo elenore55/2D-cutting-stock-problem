@@ -1,4 +1,5 @@
 import concurrent.futures
+import copy
 import random
 
 import rectpack
@@ -50,10 +51,10 @@ class GeneticAlgorithmWithoutOperators(object):
         best_results = []
 
         repetition_count = 0
-        population = self.generate_initial_population()
+        population: list[list] = self.generate_initial_population()
         for iter_num in range(self.max_iterations):
 
-            population_with_cost = []
+            population_with_cost: list[Chromosome] = []
 
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 future_to_chromosome = {executor.submit(self.calculate_cost, chrom): chrom for chrom in population}
@@ -63,7 +64,7 @@ class GeneticAlgorithmWithoutOperators(object):
                     population_with_cost.append(Chromosome(chrom, cost))
 
             population_with_cost.sort(key=lambda x: x.cost)
-            best_chromosome = population_with_cost[0]
+            best_chromosome: Chromosome = population_with_cost[0]
             if len(best_results) > 0 and best_results[-1].cost == best_chromosome.cost:
                 repetition_count += 1
             else:
@@ -71,22 +72,22 @@ class GeneticAlgorithmWithoutOperators(object):
             best_results.append(best_chromosome)
 
             if best_chromosome.cost < 0.5 or repetition_count > 100:
-                print('Stopping')
-                return best_results
+                print('Termination criteria reached')
+                return best_results[-1], iter_num
 
             print(iter_num, best_chromosome)
             next_generation = [ch.chromosome for ch in population_with_cost[:self.elitism]]
 
             for i in range(self.elitism, len(population_with_cost), 2):
                 parent1, parent2 = self.selection_strategy.select(population_with_cost)
-                child1, child2 = self.crossover_strategy.crossover(parent1, parent2)
+                child1, child2 = self.crossover_strategy.crossover(copy.deepcopy(parent1), copy.deepcopy(parent2))
                 child1 = self.mutation_strategy.mutate(child1, cost_fn=self.calculate_cost, neighborhood_fn=self._get_neighbors)
                 child2 = self.mutation_strategy.mutate(child2, cost_fn=self.calculate_cost, neighborhood_fn=self._get_neighbors)
                 next_generation.append(child1)
                 next_generation.append(child2)
 
             population = next_generation
-        return best_results
+        return best_results[-1], self.max_iterations
 
     def generate_initial_population(self) -> list[list]:
         return [self._generate_chromosome() for _ in range(self.population_size)]
@@ -177,7 +178,7 @@ class GeneticAlgorithmWithoutOperators(object):
         return valid_y, max_h
 
     @staticmethod
-    def _calculate_total_height(rectangles: list) -> list:
+    def _calculate_total_height(rectangles: list) -> int:
         result = 0
         for rectangle in rectangles:
             result = max(result, rectangle[1] + rectangle[3])

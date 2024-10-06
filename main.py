@@ -1,7 +1,9 @@
+import math
 import sys
+import time
 from strategies.selection import RouletteSelection, TournamentSelection
 from strategies.crossover import NoCrossover, PartiallyMappedCrossover, SpecialCrossover, OrderCrossover, CycleCrossover
-from strategies.mutation import NoMutation, MutationWithOperators, TwoPointSwapWithoutOperators, TabuSearch, ThreePointSwapWithoutOperators
+from strategies.mutation import MutationWithOperators, TwoPointSwapWithoutOperators, TabuSearch, ThreePointSwapWithoutOperators
 from algorithms.with_operators import GeneticAlgorithmWithOperators
 from algorithms.without_operators import GeneticAlgorithmWithoutOperators
 from data_io.json_data_reader import JsonDataReader
@@ -33,15 +35,20 @@ def start_with_operators():
         )
         sheet_width, sheet_height, pieces, rotated_pieces = JsonDataReader.read(f'./json/c/{i}.json')
 
-        best_chromosome = algorithm.do(sheet_width, sheet_height, pieces, rotated_pieces)
+        time_start = time.time()
+        best_chromosome, iter_num = algorithm.do(sheet_width, sheet_height, pieces, rotated_pieces)
+        time_end = time.time()
 
         tournament_size = TOURNAMENT_SIZE if isinstance(selection, TournamentSelection) else -1
         write_data(
-            'with_operators.json',
+            f'with_operators_{sys.argv[1]}_{sys.argv[2]}_{sys.argv[3]}.json',
+            f'c_{i}',
             selection,
             crossover,
             mutation,
             best_chromosome,
+            iter_num,
+            time_end - time_start,
             POPULATION_SIZE,
             ELITISM,
             MUTATION_RATE,
@@ -57,10 +64,10 @@ def start_without_operators():
 
     TOURNAMENT_SIZE = 3
     MUTATION_RATE = 0.5
-    TABU_SEARCH_MAX_ITERS = 3
+    TABU_SEARCH_MAX_ITERS = 2
     TABU_LIST_SIZE = 100
 
-    selection = get_selection(TournamentSelection)
+    selection = get_selection(TOURNAMENT_SIZE)
     crossover = get_crossover()
     mutation = get_mutation(MUTATION_RATE, TABU_SEARCH_MAX_ITERS, TABU_LIST_SIZE)
 
@@ -75,15 +82,20 @@ def start_without_operators():
         )
         sheet_width, sheet_height, pieces, rotated_pieces = JsonDataReader.read(f'./json/c/{i}.json')
 
-        best_chromosome = algorithm.do(sheet_width, sheet_height, pieces, rotated_pieces)
+        time_start = time.time()
+        best_chromosome, iter_num = algorithm.do(sheet_width, sheet_height, pieces, rotated_pieces)
+        time_end = time.time()
 
         tournament_size = TOURNAMENT_SIZE if isinstance(selection, TournamentSelection) else -1
         write_data(
-            'without_operators.json',
+            f'without_operators_{sys.argv[1]}_{sys.argv[2]}_{sys.argv[3]}.json',
+            f'c_{i}',
             selection,
             crossover,
             mutation,
             best_chromosome,
+            iter_num,
+            time_end - time_start,
             POPULATION_SIZE,
             ELITISM,
             MUTATION_RATE,
@@ -125,10 +137,13 @@ def get_mutation(mutation_rate, tabu_max_iters, tabu_list_size):
 
 def write_data(
         file_name,
+        dataset,
         selection,
         crossover,
         mutation,
         best_chromosome,
+        iter_num,
+        elapsed,
         population_size,
         elitism,
         mutation_rate,
@@ -136,7 +151,7 @@ def write_data(
 ):
     unoccupied_percentage, num_sheets = math.modf(best_chromosome.cost)
     data = {
-        'encoding': 'with_operators',
+        'dataset': dataset,
         'selection': selection.__class__.__name__,
         'crossover': crossover.__class__.__name__,
         'mutation': mutation.__class__.__name__,
@@ -144,6 +159,8 @@ def write_data(
         'best_cost': best_chromosome.cost,
         'num_sheets': int(num_sheets),
         'unoccupied_percentage': unoccupied_percentage,
+        'iter_num': iter_num,
+        'elapsed': elapsed,
         'population_size': population_size,
         'elitism': elitism,
         'mutation_rate': mutation_rate,
@@ -156,4 +173,5 @@ def write_data(
 # args: selection, crossover, mutation
 
 if __name__ == '__main__':
+    # print('helo')
     start_without_operators()
